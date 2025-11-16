@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Boletin1</string>
+    <string name="title_activity_ejercicio1">Ejercicio1</string>
+    <string name="title_activity_ejercicio2">Ejercicio2</string>
+    <string name="title_activity_ejercicio3">Ejercicio3</string>
+    <string name="title_activity_ejercicio4">Ejercicio4</string>
+    <string name="title_activity_ejercicio5">Ejercicio5</string>
+    <string name="title_activity_ejercicio6">Ejercicio6</string>
+    <string name="title_activity_ejercicio7">Ejercicio7</string>
+    <string name="title_activity_ejercicio8">Ejercicio8</string>
+</resources>
