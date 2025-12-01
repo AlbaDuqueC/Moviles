@@ -21,13 +21,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
+import com.example.listadecontactos.MainActivity
 import com.example.listadecontactos.data.entities.Contacto
 import com.example.listadecontactos.domain.repositories.Repositorio
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun Formulario(contacto: Contacto){
@@ -35,6 +40,9 @@ fun Formulario(contacto: Contacto){
     var nombre by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
     var genero by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    val navController = rememberNavController()
+
 
     Column(
         modifier = Modifier
@@ -92,7 +100,12 @@ fun Formulario(contacto: Contacto){
         // Botón de envío
         Button(
             onClick = {
-                Repositorio.addContacts(nombre, telefono, genero)
+                coroutineScope.launch {
+                    val nuevaTarea = Contacto(name = "${nombre}", phoneNumber = "${telefono}", genero = genero)
+                    MainActivity.database.contactoDao().addContacto(nuevaTarea)
+//Log.d(":::tag", nuevaTarea.id.toString()
+                }
+                navController.navigate("Pantalla_lista")
             },
             modifier = Modifier.fillMaxWidth()
         ) {

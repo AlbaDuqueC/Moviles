@@ -12,12 +12,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.room.Room
+import com.example.listadecontactos.data.database.ContactoDataBase
 import com.example.listadecontactos.ui.presentation.ContactsScreen
 import com.example.listadecontactos.ui.theme.ListaDeContactosTheme
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        lateinit var database: ContactoDataBase
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        database = Room.databaseBuilder(
+            applicationContext,			// Contexto de la aplicación
+            ContactoDataBase::class.java,		// Clase de la base de datos
+            "contacto-db"				// Nombre de la base de datos
+        ).build()
+
+
         enableEdgeToEdge()
         setContent {
             ListaDeContactosTheme {
