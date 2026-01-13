@@ -5,10 +5,7 @@ import androidx.room.RoomDatabase
 import com.example.listadecontactos.data.entities.Contacto
 import com.example.listadecontactos.domain.interfaces.ContactoDao
 
-@Database(entities = [Contacto::class], version = 1)
-
-abstract class ContactoDataBase : RoomDatabase(){
-
-    abstract  fun contactoDao(): ContactoDao
-
+@Database(entities = [Contacto::class], version = 1, exportSchema = false)
+abstract class ContactoDataBase : RoomDatabase() {
+    abstract fun contactoDao(): ContactoDao
 }

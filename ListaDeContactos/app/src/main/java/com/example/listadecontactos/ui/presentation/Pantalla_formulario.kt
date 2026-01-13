@@ -1,65 +1,80 @@
 package com.example.listadecontactos.ui.presentation
 
-import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.Label
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavController
 import com.example.listadecontactos.MainActivity
+import com.example.listadecontactos.R
 import com.example.listadecontactos.data.entities.Contacto
-import com.example.listadecontactos.domain.repositories.Repositorio
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Formulario(contacto: Contacto){
-
+fun Formulario(navController: NavController) {
     var nombre by remember { mutableStateOf("") }
+    var apellidos by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
-    var genero by remember { mutableStateOf("") }
+    var imagenSeleccionada by remember { mutableStateOf("Mujer") }
     val coroutineScope = rememberCoroutineScope()
-    val navController = rememberNavController()
+    var mostrarError by remember { mutableStateOf(false) }
 
+    // Lista de imágenes disponibles
+    val imagenesDisponibles = listOf(
+        "Mujer" to R.drawable.muriel_plantilla,
+        "Hombre" to R.drawable.abuelo
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Text("Formulario de Usuario", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Nuevo Contacto",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
 
         // Campo de nombre
         OutlinedTextField(
             value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre") },
+            onValueChange = {
+                nombre = it
+                mostrarError = false
+            },
+            label = { Text("Nombre *") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = mostrarError && nombre.isBlank(),
+            supportingText = {
+                if (mostrarError && nombre.isBlank()) {
+                    Text("El nombre es obligatorio")
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Campo de apellidos
+        OutlinedTextField(
+            value = apellidos,
+            onValueChange = { apellidos = it },
+            label = { Text("Apellidos") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -68,48 +83,113 @@ fun Formulario(contacto: Contacto){
         // Campo de teléfono
         OutlinedTextField(
             value = telefono,
-            onValueChange = { telefono = it },
-            label = { Text("Teléfono") },
+            onValueChange = {
+                telefono = it
+                mostrarError = false
+            },
+            label = { Text("Teléfono *") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = mostrarError && telefono.isBlank(),
+            supportingText = {
+                if (mostrarError && telefono.isBlank()) {
+                    Text("El teléfono es obligatorio")
+                }
+            }
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Selección de género
-        Text("Género:", style = MaterialTheme.typography.titleMedium)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            RadioButton(
-                selected = genero == "Masculino",
-                onClick = { genero = "Masculino" }
-            )
-            Text("Masculino")
-
-            RadioButton(
-                selected = genero == "Femenino",
-                onClick = { genero = "Femenino" }
-            )
-            Text("Femenino")
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón de envío
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    val nuevaTarea = Contacto(name = "${nombre}", phoneNumber = "${telefono}", genero = genero)
-                    MainActivity.database.contactoDao().addContacto(nuevaTarea)
-//Log.d(":::tag", nuevaTarea.id.toString()
-                }
-                navController.navigate("Pantalla_lista")
-            },
-            modifier = Modifier.fillMaxWidth()
+        // Selección de imagen
+        Text(
+            text = "Selecciona un género:",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text("Enviar")
+            imagenesDisponibles.forEach { (nombreImg, recurso) ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable {
+                        imagenSeleccionada = nombreImg
+                    }
+                ) {
+                    Image(
+                        painter = painterResource(id = recurso),
+                        contentDescription = nombreImg,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .border(
+                                width = if (imagenSeleccionada == nombreImg) 4.dp else 1.dp,
+                                color = if (imagenSeleccionada == nombreImg)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    Color.Gray
+                            )
+                            .padding(4.dp)
+                    )
+                    Text(
+                        text = nombreImg,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp),
+                        color = if (imagenSeleccionada == nombreImg)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            Color.Gray
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Botones
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Botón cancelar
+            OutlinedButton(
+                onClick = {
+                    navController.navigateUp()
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Cancelar")
+            }
+
+            // Botón guardar
+            Button(
+                onClick = {
+                    if (nombre.isBlank() || telefono.isBlank()) {
+                        mostrarError = true
+                    } else {
+                        coroutineScope.launch {
+                            val nombreCompleto = if (apellidos.isNotBlank()) {
+                                "$nombre $apellidos"
+                            } else {
+                                nombre
+                            }
+
+                            val nuevoContacto = Contacto(
+                                name = nombreCompleto,
+                                phoneNumber = telefono,
+                                genero = imagenSeleccionada
+                            )
+
+                            MainActivity.database.contactoDao().addContacto(nuevoContacto)
+                            navController.navigateUp()
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Guardar")
+            }
         }
     }
 }

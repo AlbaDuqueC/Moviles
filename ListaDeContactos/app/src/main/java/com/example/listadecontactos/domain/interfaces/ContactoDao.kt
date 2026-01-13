@@ -10,18 +10,18 @@ import com.example.listadecontactos.data.entities.Contacto
 @Dao
 interface ContactoDao {
 
-    @Query("SELECT * FROM contacto_entity")
+    @Query("SELECT * FROM contacto_entity ORDER BY name ASC")
     suspend fun getAllContacto(): MutableList<Contacto>
 
-    @Insert fun addContacto(contacto: Contacto): Long
+    @Insert
+    suspend fun addContacto(contacto: Contacto): Long
 
-    @Query("SELECT * FROM contacto_entity WHERE id LIKE :id")
-    suspend fun getContactoById(id: Long) : Contacto
+    @Query("SELECT * FROM contacto_entity WHERE id = :id")
+    suspend fun getContactoById(id: Int): Contacto?
 
     @Update
-    suspend fun  updateContacto (task: Contacto): Int
+    suspend fun updateContacto(contacto: Contacto): Int
 
     @Delete
-    suspend fun deleteContacto(task: Contacto): Int
-
+    suspend fun deleteContacto(contacto: Contacto): Int
 }
