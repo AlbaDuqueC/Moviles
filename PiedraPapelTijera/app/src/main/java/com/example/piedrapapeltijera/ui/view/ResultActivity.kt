@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ResultScreen(name: String, pScore: Int, aiScore: Int, onPlayAgain: () -> Unit) {
     val playerWon = pScore > aiScore
-    val color = if (playerWon) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val color = if (playerWon) Color(0xFF4CAF50) else (if (pScore!=aiScore) Color(0xFFF44336) else Color( 0xFFFFA500))
 
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -28,7 +28,7 @@ fun ResultScreen(name: String, pScore: Int, aiScore: Int, onPlayAgain: () -> Uni
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (playerWon) "¡VICTORIA!" else "DERROTA",
+            text = if (playerWon) "¡VICTORIA!" else (if (pScore!=aiScore)"DERROTA" else "EMPATE"),
             style = MaterialTheme.typography.displayMedium,
             color = color,
             fontWeight = FontWeight.Black
@@ -37,7 +37,7 @@ fun ResultScreen(name: String, pScore: Int, aiScore: Int, onPlayAgain: () -> Uni
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = if (playerWon) "¡Bien jugado, $name!" else "La IA te ha superado",
+            text = if (playerWon) "¡Bien jugado, $name!" else (if (pScore!=aiScore) "La IA te ha superado" else "EMPATE"),
             style = MaterialTheme.typography.headlineSmall
         )
 

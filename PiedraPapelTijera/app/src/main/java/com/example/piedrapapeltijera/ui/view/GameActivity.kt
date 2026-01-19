@@ -1,171 +1,322 @@
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.piedrapapeltijera.domain.valueObjects.GameChoice
+import com.example.piedrapapeltijera.ui.models.RoundResultModel
 import com.example.piedrapapeltijera.ui.viewmodel.GameViewModel
+
 @Composable
 fun GameScreen(
     playerName: String,
-    viewModel: GameViewModel = viewModel(),
+    factory: ViewModelProvider.Factory,
+    viewModel: GameViewModel = viewModel(factory = factory),
     onNavigateToResult: (String, Int, Int) -> Unit
 ) {
-    // 1. Obtenemos solo los datos necesarios del estado
     val state by viewModel.gameState.observeAsState()
     val navigateEvent by viewModel.navigateToResult.observeAsState()
+    var selectedChoice by remember { mutableStateOf<GameChoice?>(null) }
 
-    // 2. Lógica de inicialización y navegación
-    LaunchedEffect(Unit) {
+    // Inicialización
+    LaunchedEffect(true) {
         viewModel.initGame(playerName, 3)
     }
 
     LaunchedEffect(navigateEvent) {
         navigateEvent?.let { game ->
+            viewModel.saveGameToDatabase()
             onNavigateToResult(game.player.name, game.player.score, game.aiScore)
             viewModel.onNavigatedToResult()
         }
     }
 
-    // 3. Diseño de la Interfaz
-    Column(
+    // Fondo SÓLIDO (Sin degradado)
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FA)) // Fondo gris muy claro y limpio
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color(0xFFE3F2FD)) // Azul claro sólido
     ) {
-        // Título de la Ronda superior
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Badge de Ronda
+            AnimatedRoundBadge(roundText = state?.roundText ?: "1/3")
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Tarjeta de puntuación
+            ScoreCard(
+                playerName = playerName,
+                playerScore = state?.playerScoreText ?: "0",
+                aiScore = state?.aiScoreText ?: "0"
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Área de resultado
+            ResultArea(lastResult = state?.lastRoundResult)
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Título de selección (CAMBIADO A OSCURO para que se vea)
+            Text(
+                text = "Elige tu movimiento",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color(0xFF455A64), // Gris oscuro azulado
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Botones de acción
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                GameActionButton("🪨", "Piedra", selectedChoice == GameChoice.PIEDRA) {
+                    selectedChoice = GameChoice.PIEDRA
+                    viewModel.playerChoose(GameChoice.PIEDRA)
+                }
+                GameActionButton("📄", "Papel", selectedChoice == GameChoice.PAPEL) {
+                    selectedChoice = GameChoice.PAPEL
+                    viewModel.playerChoose(GameChoice.PAPEL)
+                }
+                GameActionButton("✂️", "Tijera", selectedChoice == GameChoice.TIJERAS) {
+                    selectedChoice = GameChoice.TIJERAS
+                    viewModel.playerChoose(GameChoice.TIJERAS)
+                }
+            }
+            Spacer(modifier = Modifier.height(40.dp))
+        }
+    }
+}
+
+@Composable
+fun AnimatedRoundBadge(roundText: String) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .scale(scale)
+            .clip(RoundedCornerShape(50))
+            // CAMBIADO: Fondo azul más fuerte para que se lea el texto blanco
+            .background(Color(0xFF1976D2))
+            .padding(horizontal = 32.dp, vertical = 12.dp)
+    ) {
         Text(
-            text = "RONDA ${state?.roundText ?: "1/3"}",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 16.dp)
+            text = "RONDA $roundText",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.White,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 2.sp
         )
+    }
+}
 
-        Spacer(modifier = Modifier.height(32.dp))
+@Composable
+fun ScoreCard(playerName: String, playerScore: String, aiScore: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ScoreColumn(
+                name = playerName,
+                score = playerScore,
+                color = Color(0xFF1976D2) // Azul fuerte
+            )
 
-        // MARCADOR (CARD ESTILO MODERNO)
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF0F0F0)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "VS",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF607D8B)
+                )
+            }
+
+            ScoreColumn(
+                name = "IA 🤖",
+                score = aiScore,
+                color = Color(0xFFE91E63) // Rosa/Rojo
+            )
+        }
+    }
+}
+
+@Composable
+fun ScoreColumn(name: String, score: String, color: Color) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(100.dp)
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = score,
+            style = MaterialTheme.typography.displayLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = color,
+            fontSize = 48.sp
+        )
+    }
+}
+
+@Composable
+fun ResultArea(lastResult: RoundResultModel?) {
+    AnimatedVisibility(
+        visible = lastResult != null,
+        enter = fadeIn() + slideInVertically(),
+        exit = fadeOut() + slideOutVertically()
+    ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ScoreColumn(playerName, state?.playerScoreText ?: "0")
-                Text("VS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                ScoreColumn("IA 🤖", state?.aiScoreText ?: "0")
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (lastResult != null) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = lastResult.result,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Color(lastResult.resultColor),
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Tú: ${lastResult.playerChoice}", fontSize = 24.sp, color = Color.Black)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("VS", fontWeight = FontWeight.Bold, color = Color.Gray)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("IA: ${lastResult.aiChoice}", fontSize = 24.sp, color = Color.Black)
+                        }
+                    }
+                }
             }
         }
+    }
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // ÁREA DE RESULTADO DE LA ÚLTIMA JUGADA
+    if (lastResult == null) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
+            modifier = Modifier.fillMaxWidth().height(140.dp),
             contentAlignment = Alignment.Center
         ) {
-            state?.lastRoundResult?.let { result ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = result.result,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color(result.resultColor),
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = "La IA eligió ${result.aiChoice}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            } ?: Text("¡Elige para empezar!", color = Color.Gray)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "✨", fontSize = 48.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                // CAMBIADO A OSCURO
+                Text(
+                    text = "¡Haz tu primera jugada!",
+                    color = Color(0xFF607D8B),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // BOTONES DE ACCIÓN
-        Text(
-            text = "Elige tu arma",
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            GameActionBtn("🪨", "Piedra") { viewModel.playerChoose(GameChoice.PIEDRA) }
-            GameActionBtn("📄", "Papel") { viewModel.playerChoose(GameChoice.PAPEL) }
-            GameActionBtn("✂️", "Tijera") { viewModel.playerChoose(GameChoice.TIJERAS) }
-        }
-
-        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
 @Composable
-fun ScoreColumn(name: String, score: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = name, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-        Text(text = score, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
-    }
-}
+fun GameActionButton(
+    emoji: String,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.1f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
 
-@Composable
-fun GameActionBtn(emoji: String, label: String, onClick: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(8.dp)
+    ) {
         Button(
             onClick = onClick,
-            modifier = Modifier.size(85.dp),
+            modifier = Modifier
+                .size(100.dp)
+                .scale(scale),
             shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isSelected) Color.White else Color.White
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = if (isSelected) 12.dp else 4.dp,
+                pressedElevation = 2.dp
+            ),
             contentPadding = PaddingValues(0.dp)
         ) {
-            Text(text = emoji, fontSize = 36.sp)
+            Text(
+                text = emoji,
+                fontSize = 48.sp
+            )
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        // CAMBIADO A OSCURO
         Text(
             text = label,
-            modifier = Modifier.padding(top = 8.dp),
-            style = MaterialTheme.typography.labelLarge
+            style = MaterialTheme.typography.titleMedium,
+            color = Color(0xFF455A64),
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }
 }
