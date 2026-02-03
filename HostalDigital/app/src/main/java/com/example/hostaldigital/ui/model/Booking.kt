@@ -21,16 +21,13 @@ data class Booking(
     // nombre del usuario
     val userName: String,
 
-
     val checkInDate: Long,
     val checkOutDate: Long,
 
     // precio total
     val totalPrice: Double,
 
-    // estado
-    val status: BookingStatus,
-    val createdAt: Long
+
 )
 
 // Estado del hsitorial

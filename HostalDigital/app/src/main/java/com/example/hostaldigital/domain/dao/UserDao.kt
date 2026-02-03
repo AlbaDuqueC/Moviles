@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.Flow
 interface UserDao {
 
     // Da el usuario si coincide el nombre y la contraseña
-    @Query("SELECT * FROM users WHERE username = :username AND password = :password LIMIT 1")
-    suspend fun login(username: String, password: String): UserEntity?
+    @Query("SELECT * FROM users WHERE email = :email AND password = :password LIMIT 1")
+    suspend fun login(email: String, password: String): UserEntity?
 
     // Da los usuarios con ese nombre
     @Query("SELECT * FROM users WHERE username = :username LIMIT 1")
@@ -26,4 +26,7 @@ interface UserDao {
     // Da todos los usuarios
     @Query("SELECT * FROM users")
     fun getAllUsers(): Flow<List<UserEntity>>
+
+    @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
+    suspend fun getUserByEmail(email: String): UserEntity?
 }

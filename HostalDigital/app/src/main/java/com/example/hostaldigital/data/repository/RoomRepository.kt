@@ -3,67 +3,50 @@ package com.example.hostaldigital.data.repository
 
 import com.example.hostaldigital.domain.dao.RoomDao
 import com.example.hostaldigital.domain.entities.RoomEntity
-import com.example.hostaldigital.ui.model.Room
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 class RoomRepository(private val roomDao: RoomDao) {
 
-    fun getAvailableRooms(): Flow<List<Room>> {
-        return roomDao.getAvailableRooms().map { entities ->
-            entities.map { it.toDomain() }
-        }
+    fun getAllRooms(): Flow<List<RoomEntity>> {
+        return roomDao.getAllRooms()
     }
 
-    fun getAllRooms(): Flow<List<Room>> {
-        return roomDao.getAllRooms().map { entities ->
-            entities.map { it.toDomain() }
-        }
+    fun getAvailableRooms(): Flow<List<RoomEntity>> {
+        return roomDao.getAvailableRooms()
     }
 
-    suspend fun getRoomById(roomId: Int): Room? {
-        return roomDao.getRoomById(roomId)?.toDomain()
+    suspend fun getRoomById(roomId: Int): RoomEntity? {
+        return roomDao.getRoomById(roomId)
     }
 
-    suspend fun addRoom(
-        roomNumber: String,
-        type: String,
-        price: Double,
-        capacity: Int,
-        description: String
-    ): Result<Long> {
+    suspend fun addRoom(room: RoomEntity): Result<Long> {
         return try {
-            val roomId = roomDao.insert(
-                RoomEntity(
-                    roomNumber = roomNumber,
-                    type = type,
-                    price = price,
-                    capacity = capacity,
-                    description = description,
-                    isAvailable = true
-                )
-            )
+            val roomId = roomDao.insert(room)
             Result.success(roomId)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun updateRoomAvailability(roomId: Int, isAvailable: Boolean) {
-        roomDao.updateRoomAvailability(roomId, isAvailable)
+    suspend fun updateRoom(room: RoomEntity): Result<Unit> {
+        return try {
+            roomDao.update(room)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateRoomAvailability(roomId: Int, isAvailable: Boolean): Result<Unit> {
+        return try {
+            roomDao.updateRoomAvailability(roomId, isAvailable)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun getRoomCount(): Int {
         return roomDao.getRoomCount()
     }
-
-    private fun RoomEntity.toDomain() = Room(
-        id = id,
-        roomNumber = roomNumber,
-        type = type,
-        price = price,
-        capacity = capacity,
-        description = description,
-        isAvailable = isAvailable
-    )
 }

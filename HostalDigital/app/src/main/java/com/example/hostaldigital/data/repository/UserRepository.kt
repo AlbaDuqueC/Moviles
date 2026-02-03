@@ -3,45 +3,43 @@ package com.example.hostaldigital.data.repository
 
 import com.example.hostaldigital.domain.dao.UserDao
 import com.example.hostaldigital.domain.entities.UserEntity
-import com.example.hostaldigital.ui.model.User
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 class UserRepository(private val userDao: UserDao) {
 
-    suspend fun login(username: String, password: String): User? {
-        return userDao.login(username, password)?.let {
-            User(id = it.id, username = it.username, isOwner = it.isOwner)
-        }
-    }
-
-    suspend fun register(username: String, password: String): Result<User> {
+    suspend fun registerUser(user: UserEntity): Result<Long> {
         return try {
-            // Verificar si el usuario ya existe
-            val existingUser = userDao.getUserByUsername(username)
+            // Verificar si el email ya existe
+            val existingUser = userDao.getUserByEmail(user.email)
             if (existingUser != null) {
-                Result.failure(Exception("El usuario ya existe"))
+                Result.failure(Exception("El email ya está registrado"))
             } else {
-                val userId = userDao.insert(
-                    UserEntity(username = username, password = password, isOwner = false)
-                )
-                val user = User(id = userId.toInt(), username = username, isOwner = false)
-                Result.success(user)
+                val userId = userDao.insert(user)
+                Result.success(userId)
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun getUserById(userId: Int): User? {
-        return userDao.getUserById(userId)?.let {
-            User(id = it.id, username = it.username, isOwner = it.isOwner)
+    suspend fun login(email: String, password: String): Result<UserEntity> {
+        return try {
+            val user = userDao.login(email, password)
+            if (user != null) {
+                Result.success(user)
+            } else {
+                Result.failure(Exception("Email o contraseña incorrectos"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    fun getAllUsers(): Flow<List<User>> {
-        return userDao.getAllUsers().map { entities ->
-            entities.map { User(id = it.id, username = it.username, isOwner = it.isOwner) }
-        }
+    suspend fun getUserById(userId: Int): UserEntity? {
+        return userDao.getUserById(userId)
+    }
+
+    fun getAllUsers(): Flow<List<UserEntity>> {
+        return userDao.getAllUsers()
     }
 }

@@ -1,5 +1,7 @@
 package com.example.hostaldigital.ui.model
 
+import com.example.hostaldigital.domain.entities.RoomEntity
+
 // model room
 data class Room(
 
@@ -24,3 +26,18 @@ data class Room(
     // si esta ocupada o no
     val isAvailable: Boolean
 )
+/**
+ * Función de extensión para convertir la Entidad de la base de datos
+ * al Modelo de la UI. Pon esto aquí para tener el código organizado.
+ */
+fun RoomEntity.toUiModel(): Room {
+    return Room(
+        id = this.id,
+        roomNumber = this.roomNumber,
+        type = this.type,
+        price = this.price,
+        capacity = this.capacity,
+        description = this.description,
+        isAvailable = this.isAvailable
+    )
+}

@@ -6,7 +6,11 @@ data class User(
     val id: Int,
 
     // nombre del usuario
-    val username: String,
+    val name: String,
+
+    val email: String,
+
+    val password: String,
 
     val isOwner: Boolean
 )

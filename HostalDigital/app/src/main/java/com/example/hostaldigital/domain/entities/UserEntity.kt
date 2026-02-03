@@ -3,6 +3,7 @@ package com.example.hostaldigital.domain.entities
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.hostaldigital.ui.model.User
 
 //Entidad usuarios
 @Entity(tableName = "users")
@@ -15,7 +16,9 @@ data class UserEntity(
 
     //Nombre del usuario
     @ColumnInfo("username")
-    val username: String,
+    val name: String,
+
+    val email: String,
 
     // Contraseña del usuario
     @ColumnInfo(name = "password")
@@ -25,3 +28,4 @@ data class UserEntity(
     @ColumnInfo("isOwner")
     val isOwner: Boolean = false
 )
+fun UserEntity.toUiModel() = User(id, name, email, password, isOwner)

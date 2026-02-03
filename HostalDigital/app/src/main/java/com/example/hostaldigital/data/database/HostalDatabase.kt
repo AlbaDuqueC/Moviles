@@ -61,9 +61,11 @@ abstract class HostalDatabase : RoomDatabase() {
             // Crear usuario dueño
             userDao.insert(
                 UserEntity(
-                    username = "alba",
+                    name = "alba",
                     password = "alba123",
-                    isOwner = true
+                    email = "a@gmail.com",
+                    isOwner = true,
+
                 )
             )
 

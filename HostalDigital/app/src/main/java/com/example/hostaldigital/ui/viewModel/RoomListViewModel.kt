@@ -3,6 +3,7 @@ package com.example.hostaldigital.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hostaldigital.data.repository.RoomRepository
+import com.example.hostaldigital.domain.entities.RoomEntity
 import com.example.hostaldigital.ui.model.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,8 +14,8 @@ class RoomListViewModel(
     private val roomRepository: RoomRepository
 ) : ViewModel() {
 
-    private val _availableRooms = MutableStateFlow<List<Room>>(emptyList())
-    val availableRooms: StateFlow<List<Room>> = _availableRooms.asStateFlow()
+    private val _availableRooms = MutableStateFlow<List<RoomEntity>>(emptyList())
+    val availableRooms: StateFlow<List<RoomEntity>> = _availableRooms.asStateFlow()
 
     private val _selectedRoom = MutableStateFlow<Room?>(null)
     val selectedRoom: StateFlow<Room?> = _selectedRoom.asStateFlow()
@@ -40,6 +41,6 @@ class RoomListViewModel(
     }
 
     suspend fun getRoomById(roomId: Int): Room? {
-        return roomRepository.getRoomById(roomId)
+        return roomRepository.getRoomById(roomId) as Room?
     }
 }

@@ -3,7 +3,11 @@ package com.example.hostaldigital.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hostaldigital.data.repository.UserRepository
+import com.example.hostaldigital.domain.entities.UserEntity
+import com.example.hostaldigital.domain.entities.toUiModel
+import com.example.hostaldigital.ui.model.UiState
 import com.example.hostaldigital.ui.model.User
+import com.example.hostaldigital.ui.model.UserSession
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,88 +17,65 @@ class AuthViewModel(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _currentUser = MutableStateFlow<User?>(null)
-    val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+    private val _userSession = MutableStateFlow(UserSession())
+    val userSession: StateFlow<UserSession> = _userSession.asStateFlow()
 
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    private val _authState = MutableStateFlow<UiState<User>>(UiState.Idle)
+    val authState: StateFlow<UiState<User>> = _authState.asStateFlow()
 
-    fun login(username: String, password: String) {
+    fun login(email: String, password: String) {
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
-            try {
-                val user = userRepository.login(username, password)
-                if (user != null) {
-                    _currentUser.value = user
-                    _authState.value = AuthState.Success
-                } else {
-                    _authState.value = AuthState.Error("Usuario o contraseña incorrectos")
+            _authState.value = UiState.Loading
+
+            val result = userRepository.login(email, password)
+
+            result.fold(
+                { entity -> // Aquí recibes el UserEntity del repositorio
+                    val userUi = entity.toUiModel() // Lo convertimos a User de UI
+
+                    _userSession.value = UserSession(user = userUi, isLoggedIn = true)
+                    _authState.value = UiState.Success(data = userUi)
+                },
+                { exception ->
+                    _authState.value = UiState.Error(exception.message ?: "Error al iniciar sesión")
                 }
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error desconocido")
-            }
+            )
         }
     }
 
-    fun register(username: String, password: String, confirmPassword: String) {
+
+    fun register(name: String, email: String, password: String) {
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
+            _authState.value = UiState.Loading
 
-            // Validaciones
-            if (username.isBlank()) {
-                _authState.value = AuthState.Error("El nombre de usuario no puede estar vacío")
-                return@launch
-            }
+            val user = UserEntity(
 
-            if (password.isBlank()) {
-                _authState.value = AuthState.Error("La contraseña no puede estar vacía")
-                return@launch
-            }
+                name = name,
+                email = email,
+                password = password,
+                isOwner = false
+            )
 
-            if (password != confirmPassword) {
-                _authState.value = AuthState.Error("Las contraseñas no coinciden")
-                return@launch
-            }
+            val result = userRepository.registerUser(user)
 
-            if (password.length < 6) {
-                _authState.value = AuthState.Error("La contraseña debe tener al menos 6 caracteres")
-                return@launch
-            }
-
-            try {
-                val result = userRepository.register(username, password)
-                result.fold(
-                    onSuccess = { user ->
-                        _currentUser.value = user
-                        _authState.value = AuthState.Success
-                    },
-                    onFailure = { error ->
-                        _authState.value = AuthState.Error(error.message ?: "Error al registrar")
-                    }
-                )
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error desconocido")
-            }
+            result.fold(
+                onSuccess = {
+                    // Auto-login después del registro
+                    login(email, password)
+                },
+                onFailure = { exception ->
+                    _authState.value = UiState.Error(exception.message ?: "Error al registrarse")
+                }
+            )
         }
     }
 
     fun logout() {
-        _currentUser.value = null
-        _authState.value = AuthState.Idle
+        _userSession.value = UserSession()
+        _authState.value = UiState.Idle
     }
 
     fun resetAuthState() {
-        _authState.value = AuthState.Idle
+        _authState.value = UiState.Idle
     }
-
-    fun isLoggedIn(): Boolean = _currentUser.value != null
-
-    fun isOwner(): Boolean = _currentUser.value?.isOwner == true
-}
-
-sealed class AuthState {
-    object Idle : AuthState()
-    object Loading : AuthState()
-    object Success : AuthState()
-    data class Error(val message: String) : AuthState()
 }

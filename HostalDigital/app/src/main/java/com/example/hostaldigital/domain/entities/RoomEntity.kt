@@ -3,36 +3,29 @@ package com.example.hostaldigital.domain.entities
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+// IMPORTANTE: Quitamos el import de Room aquí para evitar dependencias circulares
 
 @Entity(tableName = "rooms")
 data class RoomEntity(
-
-    // Id de la habitacion
     @PrimaryKey(autoGenerate = true)
-    @ColumnInfo("id")
+    @ColumnInfo(name = "id")
     val id: Int = 0,
 
-    // Numero de la habitacion
-    @ColumnInfo("roomNumber")
+    @ColumnInfo(name = "roomNumber")
     val roomNumber: String,
 
-    // Tipo de habitacion
-    @ColumnInfo("type")
+    @ColumnInfo(name = "type")
     val type: String, // Single, Double, Suite
 
-    // Precio de la habitacion
-    @ColumnInfo("price")
+    @ColumnInfo(name = "price")
     val price: Double,
 
-    // Capacidad de la habitacion, numero de personas que caben
-    @ColumnInfo("capacity")
+    @ColumnInfo(name = "capacity")
     val capacity: Int,
 
-    // Descripcion de la habitacion
-    @ColumnInfo("description")
+    @ColumnInfo(name = "description")
     val description: String,
 
-    // Boolean que define si esta ocupada la habitacion o no
-    @ColumnInfo("isAvailable")
+    @ColumnInfo(name = "isAvailable")
     val isAvailable: Boolean = true
 )

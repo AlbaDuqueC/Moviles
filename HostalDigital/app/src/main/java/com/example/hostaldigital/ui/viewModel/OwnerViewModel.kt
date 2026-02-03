@@ -4,40 +4,60 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hostaldigital.data.repository.BookingRepository
 import com.example.hostaldigital.data.repository.RoomRepository
-import com.example.hostaldigital.ui.model.Booking
+import com.example.hostaldigital.data.repository.UserRepository
+import com.example.hostaldigital.domain.entities.BookingWithDetails
+import com.example.hostaldigital.domain.entities.RoomEntity
 import com.example.hostaldigital.ui.model.Room
+import com.example.hostaldigital.ui.model.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+
+fun Room.toEntity() = RoomEntity(
+    id = id,
+    roomNumber = roomNumber,
+    type = type,
+    price = price,
+    capacity = capacity,
+    description = description,
+    isAvailable = isAvailable
+)
+
+// --- VIEWMODEL ---
+
 class OwnerViewModel(
+    private val roomRepository: RoomRepository,
     private val bookingRepository: BookingRepository,
-    private val roomRepository: RoomRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _allRooms = MutableStateFlow<List<Room>>(emptyList())
     val allRooms: StateFlow<List<Room>> = _allRooms.asStateFlow()
 
-    private val _allBookings = MutableStateFlow<List<Booking>>(emptyList())
-    val allBookings: StateFlow<List<Booking>> = _allBookings.asStateFlow()
+    private val _allBookings = MutableStateFlow<List<BookingWithDetails>>(emptyList())
+    val allBookings: StateFlow<List<BookingWithDetails>> = _allBookings.asStateFlow()
 
-    private val _activeBookings = MutableStateFlow<List<Booking>>(emptyList())
-    val activeBookings: StateFlow<List<Booking>> = _activeBookings.asStateFlow()
+    private val _roomBookings = MutableStateFlow<List<BookingWithDetails>>(emptyList())
+    val roomBookings: StateFlow<List<BookingWithDetails>> = _roomBookings.asStateFlow()
 
-    private val _ownerState = MutableStateFlow<OwnerState>(OwnerState.Idle)
-    val ownerState: StateFlow<OwnerState> = _ownerState.asStateFlow()
+    private val _addRoomState = MutableStateFlow<UiState<Long>>(UiState.Idle)
+    val addRoomState: StateFlow<UiState<Long>> = _addRoomState.asStateFlow()
+
+    private val _completeBookingState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
+    val completeBookingState: StateFlow<UiState<Unit>> = _completeBookingState.asStateFlow()
 
     init {
         loadAllRooms()
         loadAllBookings()
-        loadActiveBookings()
     }
 
     private fun loadAllRooms() {
         viewModelScope.launch {
-            roomRepository.getAllRooms().collect { rooms ->
-                _allRooms.value = rooms
+            roomRepository.getAllRooms().collect { entities ->
+                // Usamos la función de extensión para convertir la lista
+                _allRooms.value = entities.map { it.toUiModel() }
             }
         }
     }
@@ -50,109 +70,57 @@ class OwnerViewModel(
         }
     }
 
-    private fun loadActiveBookings() {
+    fun loadRoomBookings(roomId: Int) {
         viewModelScope.launch {
-            bookingRepository.getActiveBookings().collect { bookings ->
-                _activeBookings.value = bookings
+            // Asegúrate de que BookingRepository tenga esta función definida
+            bookingRepository.getRoomBookings(roomId).collect { bookings ->
+                _roomBookings.value = bookings
             }
         }
     }
 
-    fun addRoom(
-        roomNumber: String,
-        type: String,
-        price: Double,
-        capacity: Int,
-        description: String
-    ) {
+    fun addRoom(room: Room) {
         viewModelScope.launch {
-            _ownerState.value = OwnerState.Loading
+            _addRoomState.value = UiState.Loading
+            // Convertimos el modelo de la UI a Entidad antes de enviarlo al Repositorio
+            val result = roomRepository.addRoom(room.toEntity())
 
-            // Validaciones
-            if (roomNumber.isBlank()) {
-                _ownerState.value = OwnerState.Error("El número de habitación no puede estar vacío")
-                return@launch
-            }
-
-            if (price <= 0) {
-                _ownerState.value = OwnerState.Error("El precio debe ser mayor a 0")
-                return@launch
-            }
-
-            if (capacity <= 0) {
-                _ownerState.value = OwnerState.Error("La capacidad debe ser mayor a 0")
-                return@launch
-            }
-
-            try {
-                val result = roomRepository.addRoom(roomNumber, type, price, capacity, description)
-                result.fold(
-                    onSuccess = {
-                        _ownerState.value = OwnerState.Success("Habitación añadida exitosamente")
-                    },
-                    onFailure = { error ->
-                        _ownerState.value = OwnerState.Error(
-                            error.message ?: "Error al añadir la habitación"
-                        )
-                    }
-                )
-            } catch (e: Exception) {
-                _ownerState.value = OwnerState.Error(e.message ?: "Error desconocido")
-            }
-        }
-    }
-
-    fun makeRoomAvailable(roomId: Int) {
-        viewModelScope.launch {
-            _ownerState.value = OwnerState.Loading
-            try {
-                roomRepository.updateRoomAvailability(roomId, true)
-                _ownerState.value = OwnerState.Success("Habitación disponible")
-            } catch (e: Exception) {
-                _ownerState.value = OwnerState.Error(e.message ?: "Error desconocido")
-            }
+            result.fold(
+                onSuccess = { roomId ->
+                    _addRoomState.value = UiState.Success(roomId)
+                },
+                onFailure = { exception ->
+                    _addRoomState.value = UiState.Error(
+                        exception.message ?: "Error al agregar habitación"
+                    )
+                }
+            )
         }
     }
 
     fun completeBooking(bookingId: Int) {
         viewModelScope.launch {
-            _ownerState.value = OwnerState.Loading
-            try {
-                val result = bookingRepository.completeBooking(bookingId, makeRoomAvailable = true)
-                result.fold(
-                    onSuccess = {
-                        _ownerState.value = OwnerState.Success("Reserva finalizada y habitación liberada")
-                    },
-                    onFailure = { error ->
-                        _ownerState.value = OwnerState.Error(
-                            error.message ?: "Error al finalizar la reserva"
-                        )
-                    }
-                )
-            } catch (e: Exception) {
-                _ownerState.value = OwnerState.Error(e.message ?: "Error desconocido")
-            }
+            _completeBookingState.value = UiState.Loading
+            val result = bookingRepository.completeBooking(bookingId)
+
+            result.fold(
+                onSuccess = {
+                    _completeBookingState.value = UiState.Success(Unit)
+                },
+                onFailure = { exception ->
+                    _completeBookingState.value = UiState.Error(
+                        exception.message ?: "Error al completar la reserva"
+                    )
+                }
+            )
         }
     }
 
-    fun getBookingsByRoom(roomId: Int): StateFlow<List<Booking>> {
-        val bookingsFlow = MutableStateFlow<List<Booking>>(emptyList())
-        viewModelScope.launch {
-            bookingRepository.getBookingsByRoom(roomId).collect { bookings ->
-                bookingsFlow.value = bookings
-            }
-        }
-        return bookingsFlow.asStateFlow()
+    fun resetAddRoomState() {
+        _addRoomState.value = UiState.Idle
     }
 
-    fun resetOwnerState() {
-        _ownerState.value = OwnerState.Idle
+    fun resetCompleteBookingState() {
+        _completeBookingState.value = UiState.Idle
     }
-}
-
-sealed class OwnerState {
-    object Idle : OwnerState()
-    object Loading : OwnerState()
-    data class Success(val message: String) : OwnerState()
-    data class Error(val message: String) : OwnerState()
 }
